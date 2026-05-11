@@ -30,7 +30,8 @@ import {
   markPlantFertilized,
   markPlantWatered,
   onAuthChange,
-  signInWithMagicLink,
+  signInWithPassword,
+  signUpWithPassword,
   signOut,
   syncProfile,
   updatePlant
@@ -273,6 +274,8 @@ export default function App() {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authMode, setAuthMode] = useState("sign-in");
   const [authMessage, setAuthMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -461,21 +464,41 @@ export default function App() {
     setAuthMessage("");
     setError("");
 
-    if (!authEmail.trim()) {
-      setError("Enter an email address to sign in.");
+    const email = authEmail.trim();
+    const password = authPassword.trim();
+
+    if (!email) {
+      setError("Enter an email address.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
       return;
     }
 
     try {
-      await signInWithMagicLink(authEmail.trim());
-      setAuthMessage("Check your email for the magic link.");
+      const nextSession =
+        authMode === "sign-up"
+          ? await signUpWithPassword(email, password)
+          : await signInWithPassword(email, password);
+
+      if (nextSession) {
+        setSession(nextSession);
+        await syncProfile(nextSession);
+        setAuthPassword("");
+        setAuthMessage(authMode === "sign-up" ? "Account created. You are signed in." : "Signed in.");
+      } else {
+        setAuthMessage("Account created. Confirm your email once, then sign in.");
+      }
     } catch (err) {
-      setError(err.message || "Could not send sign-in link.");
+      setError(err.message || "Could not authenticate.");
     }
   }
 
   async function handleSignOut() {
     await signOut();
+    setAuthPassword("");
     setAuthMessage("");
   }
 
@@ -611,9 +634,29 @@ export default function App() {
                   onChange={(event) => setAuthEmail(event.target.value)}
                   placeholder="email@example.com"
                 />
+                <input
+                  aria-label="Password"
+                  autoComplete={authMode === "sign-up" ? "new-password" : "current-password"}
+                  minLength={6}
+                  type="password"
+                  value={authPassword}
+                  onChange={(event) => setAuthPassword(event.target.value)}
+                  placeholder="password"
+                />
                 <button className="ghost-button" type="submit">
                   <LogIn size={18} />
-                  Sign in
+                  {authMode === "sign-up" ? "Sign up" : "Sign in"}
+                </button>
+                <button
+                  className="text-button"
+                  type="button"
+                  onClick={() => {
+                    setAuthMode(authMode === "sign-up" ? "sign-in" : "sign-up");
+                    setAuthMessage("");
+                    setError("");
+                  }}
+                >
+                  {authMode === "sign-up" ? "Use login" : "Create account"}
                 </button>
               </form>
             )
@@ -671,10 +714,14 @@ export default function App() {
       {activeTab === "settings" ? (
         <SettingsView
           authEmail={authEmail}
+          authPassword={authPassword}
+          authMode={authMode}
           isCloudMode={isCloudMode}
           isSupabaseConfigured={isSupabaseConfigured}
           session={session}
           onAuthEmailChange={setAuthEmail}
+          onAuthPasswordChange={setAuthPassword}
+          onAuthModeChange={setAuthMode}
           onAuthSubmit={handleAuthSubmit}
           onSignOut={handleSignOut}
         />
@@ -1358,13 +1405,19 @@ function JournalView({ plants, onOpenPlant }) {
 
 function SettingsView({
   authEmail,
+  authPassword,
+  authMode,
   isCloudMode,
   isSupabaseConfigured,
   session,
   onAuthEmailChange,
+  onAuthPasswordChange,
+  onAuthModeChange,
   onAuthSubmit,
   onSignOut
 }) {
+  const isSignUp = authMode === "sign-up";
+
   return (
     <main className="tab-page single-column">
       <section className="wide-panel">
@@ -1400,15 +1453,34 @@ function SettingsView({
               <label>
                 Email
                 <input
+                  autoComplete="email"
                   type="email"
                   value={authEmail}
                   onChange={(event) => onAuthEmailChange(event.target.value)}
                   placeholder="email@example.com"
                 />
               </label>
+              <label>
+                Password
+                <input
+                  autoComplete={isSignUp ? "new-password" : "current-password"}
+                  minLength={6}
+                  type="password"
+                  value={authPassword}
+                  onChange={(event) => onAuthPasswordChange(event.target.value)}
+                  placeholder="At least 6 characters"
+                />
+              </label>
               <button className="primary-button full-width" type="submit">
                 <LogIn size={18} />
-                Sign in
+                {isSignUp ? "Create account" : "Sign in"}
+              </button>
+              <button
+                className="ghost-button full-width"
+                type="button"
+                onClick={() => onAuthModeChange(isSignUp ? "sign-in" : "sign-up")}
+              >
+                {isSignUp ? "I already have an account" : "Create a new account"}
               </button>
             </form>
           )

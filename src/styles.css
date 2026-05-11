@@ -93,8 +93,26 @@ button:disabled {
   gap: 10px;
 }
 
+.auth-form {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .auth-form input {
-  width: min(220px, 42vw);
+  width: min(210px, 42vw);
+}
+
+.text-button {
+  border: 0;
+  background: transparent;
+  color: #244d35;
+  font-weight: 850;
+  padding: 0 4px;
+  text-decoration: underline;
+}
+
+.text-button:hover {
+  color: #17221a;
 }
 
 .workspace {

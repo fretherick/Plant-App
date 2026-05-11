@@ -211,9 +211,10 @@ export function onAuthChange(callback) {
   return () => data.subscription.unsubscribe();
 }
 
-export async function signInWithMagicLink(email) {
-  const { error } = await supabase.auth.signInWithOtp({
+export async function signUpWithPassword(email, password) {
+  const { data, error } = await supabase.auth.signUp({
     email,
+    password,
     options: {
       emailRedirectTo: window.location.origin
     }
@@ -222,6 +223,21 @@ export async function signInWithMagicLink(email) {
   if (error) {
     throw error;
   }
+
+  return data.session;
+}
+
+export async function signInWithPassword(email, password) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data.session;
 }
 
 export async function signOut() {
