@@ -47,6 +47,7 @@ import {
 } from "./lib/date";
 import { isSupabaseConfigured } from "./lib/supabaseClient";
 import { diagnosePlant, identifyPlantFromImage } from "./lib/plantRecognition";
+import { careGuidePlants } from "./data/careGuidePlants";
 
 const emptyForm = {
   name: "",
@@ -69,111 +70,6 @@ const tabs = [
   { id: "guide", label: "Plant Care", Icon: Search },
   { id: "journal", label: "Journal", Icon: BookOpen },
   { id: "settings", label: "Settings", Icon: Settings }
-];
-
-const careGuidePlants = [
-  {
-    id: "monstera",
-    name: "Monstera",
-    scientificName: "Monstera deliciosa",
-    difficulty: "Easy",
-    light: "Bright indirect",
-    water: "Water when the top 3-5 cm of soil are dry.",
-    wateringIntervalDays: 7,
-    fertilizingIntervalDays: 30,
-    tags: ["large leaves", "climbing", "bright room"],
-    aliases: ["swiss cheese plant", "fenestrated leaves", "tropical"],
-    image:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Indoor_Monstera_deliciosa.jpg/960px-Indoor_Monstera_deliciosa.jpg",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Indoor_Monstera_deliciosa.jpg",
-    attribution: "kallerna, CC BY-SA 4.0",
-    notes: "Give it a moss pole or support as it matures. Avoid direct midday sun."
-  },
-  {
-    id: "pothos",
-    name: "Golden Pothos",
-    scientificName: "Epipremnum aureum",
-    difficulty: "Beginner",
-    light: "Low to bright indirect",
-    water: "Let the top half of the potting mix dry before watering.",
-    wateringIntervalDays: 10,
-    fertilizingIntervalDays: 45,
-    tags: ["trailing", "low light", "easy"],
-    aliases: ["devils ivy", "devil's ivy", "hanging plant", "vine"],
-    image:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Epipremnum_aureum_%28pothos%29.jpg/500px-Epipremnum_aureum_%28pothos%29.jpg",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Epipremnum_aureum_(pothos).jpg",
-    attribution: "Filo gen', CC BY-SA",
-    notes: "Great for shelves and hanging pots. Trim vines to keep it full."
-  },
-  {
-    id: "snake-plant",
-    name: "Snake Plant",
-    scientificName: "Dracaena trifasciata",
-    difficulty: "Beginner",
-    light: "Low to bright indirect",
-    water: "Water only after the soil is fully dry.",
-    wateringIntervalDays: 21,
-    fertilizingIntervalDays: 60,
-    tags: ["drought tolerant", "upright", "low light"],
-    aliases: ["sansevieria", "mother in law tongue", "mother-in-law's tongue"],
-    image:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Snake_plant_%28Sansevieria_trifasciata%29.jpg/330px-Snake_plant_%28Sansevieria_trifasciata%29.jpg",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Snake_plant_(Sansevieria_trifasciata).jpg",
-    attribution: "Krishnav25, CC0",
-    notes: "Use a gritty, fast-draining mix. Most problems come from overwatering."
-  },
-  {
-    id: "peace-lily",
-    name: "Peace Lily",
-    scientificName: "Spathiphyllum wallisii",
-    difficulty: "Easy",
-    light: "Low to bright indirect",
-    water: "Keep lightly moist, but do not let the pot sit in water.",
-    wateringIntervalDays: 6,
-    fertilizingIntervalDays: 45,
-    tags: ["flowers", "humidity", "shade tolerant"],
-    aliases: ["spathiphyllum", "white flowers", "closet plant"],
-    image:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Spathiphyllum_wallisii_%28418534471%29.jpg/960px-Spathiphyllum_wallisii_%28418534471%29.jpg",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Spathiphyllum_wallisii_(418534471).jpg",
-    attribution: "Dinesh Valke, CC BY-SA 2.0",
-    notes: "Leaves droop when thirsty. Wipe leaves occasionally to keep them clean."
-  },
-  {
-    id: "spider-plant",
-    name: "Spider Plant",
-    scientificName: "Chlorophytum comosum",
-    difficulty: "Beginner",
-    light: "Bright indirect",
-    water: "Water when the top few centimeters of soil are dry.",
-    wateringIntervalDays: 7,
-    fertilizingIntervalDays: 30,
-    tags: ["pet friendly", "baby plants", "hanging"],
-    aliases: ["chlorophytum", "spider babies", "ribbon plant"],
-    image:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Spider_Plant_%28Chlorophytum_comosum%29.jpg/960px-Spider_Plant_%28Chlorophytum_comosum%29.jpg",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:Spider_Plant_(Chlorophytum_comosum).jpg",
-    attribution: "Mokkie, CC BY-SA 3.0",
-    notes: "Produces plantlets when happy. Brown tips often point to dry air or salt buildup."
-  },
-  {
-    id: "zz-plant",
-    name: "ZZ Plant",
-    scientificName: "Zamioculcas zamiifolia",
-    difficulty: "Beginner",
-    light: "Low to bright indirect",
-    water: "Water sparingly after the soil dries out completely.",
-    wateringIntervalDays: 21,
-    fertilizingIntervalDays: 60,
-    tags: ["low light", "drought tolerant", "slow growing"],
-    aliases: ["zanzibar gem", "zamioculcas", "zz"],
-    image:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/ZZ_Plant_%28Zamioculcas_zamiifolia%29.jpg/330px-ZZ_Plant_%28Zamioculcas_zamiifolia%29.jpg",
-    sourceUrl: "https://commons.wikimedia.org/wiki/File:ZZ_Plant_(Zamioculcas_zamiifolia).jpg",
-    attribution: "Mokkie, CC BY-SA 3.0",
-    notes: "Stores water in rhizomes. It is happiest when you mostly leave it alone."
-  }
 ];
 
 function normalizeSearchValue(value) {
