@@ -9,6 +9,37 @@ function fileToDataUrl(file) {
   });
 }
 
+async function getFunctionErrorMessage(error) {
+  const fallback = error?.message || "AI request failed.";
+  const response = error?.context;
+
+  if (!response || typeof response.clone !== "function") {
+    return fallback;
+  }
+
+  try {
+    const body = await response.clone().json();
+    return body?.error || body?.message || fallback;
+  } catch {
+    try {
+      const text = await response.clone().text();
+      return text || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+}
+
+async function invokeAiFunction(name, body) {
+  const { data, error } = await supabase.functions.invoke(name, { body });
+
+  if (error) {
+    throw new Error(await getFunctionErrorMessage(error));
+  }
+
+  return data;
+}
+
 export async function identifyPlantFromImage(file) {
   if (!isSupabaseConfigured) {
     throw new Error("Supabase is not configured, so image recognition cannot run yet.");
@@ -23,15 +54,7 @@ export async function identifyPlantFromImage(file) {
   }
 
   const image = await fileToDataUrl(file);
-  const { data, error } = await supabase.functions.invoke("identify-plant", {
-    body: { image }
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
+  return invokeAiFunction("identify-plant", { image });
 }
 
 export async function diagnosePlant({ file, plant, symptoms }) {
@@ -48,8 +71,7 @@ export async function diagnosePlant({ file, plant, symptoms }) {
   }
 
   const image = await fileToDataUrl(file);
-  const { data, error } = await supabase.functions.invoke("diagnose-plant", {
-    body: {
+  return invokeAiFunction("diagnose-plant", {
       image,
       plant: {
         name: plant?.name ?? "",
@@ -63,12 +85,5 @@ export async function diagnosePlant({ file, plant, symptoms }) {
         lastFertilizedAt: plant?.lastFertilizedAt ?? null
       },
       symptoms: symptoms?.trim() ?? ""
-    }
   });
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
 }
