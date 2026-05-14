@@ -68,8 +68,32 @@ function fromRow(row) {
     lastWateredAt: row.last_watered_at,
     lastFertilizedAt: row.last_fertilized_at,
     photoUrl: row.photo_url,
+    photoStoragePath: row.photo_storage_path,
     reminderEmailEnabled: Boolean(row.reminder_email_enabled),
     createdAt: row.created_at
+  };
+}
+
+async function addSignedPhotoUrl(plant) {
+  if (!plant.photoStoragePath) {
+    return plant;
+  }
+
+  const { data, error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .createSignedUrl(plant.photoStoragePath, 60 * 60);
+
+  if (error) {
+    console.warn(error.message);
+    return {
+      ...plant,
+      photoUrl: null
+    };
+  }
+
+  return {
+    ...plant,
+    photoUrl: data.signedUrl
   };
 }
 
@@ -116,11 +140,7 @@ async function uploadRemotePhoto({ file, plantId, userId }) {
     throw error;
   }
 
-  const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
-  return {
-    path,
-    url: data.publicUrl
-  };
+  return { path };
 }
 
 async function attachRemotePhoto({ file, plant, userId }) {
@@ -137,7 +157,7 @@ async function attachRemotePhoto({ file, plant, userId }) {
   const { error: photoError } = await supabase.from("plant_photos").insert({
     plant_id: plant.id,
     user_id: userId,
-    image_url: photo.url,
+    image_url: photo.path,
     storage_path: photo.path
   });
 
@@ -147,7 +167,10 @@ async function attachRemotePhoto({ file, plant, userId }) {
 
   const { data: updatedRow, error: updateError } = await supabase
     .from("plants")
-    .update({ photo_url: photo.url })
+    .update({
+      photo_storage_path: photo.path,
+      photo_url: null
+    })
     .eq("id", plant.id)
     .select()
     .single();
@@ -156,7 +179,7 @@ async function attachRemotePhoto({ file, plant, userId }) {
     throw updateError;
   }
 
-  return fromRow(updatedRow);
+  return addSignedPhotoUrl(fromRow(updatedRow));
 }
 
 async function ensureReminder({ plant, userId }) {
@@ -272,7 +295,7 @@ export async function listPlants(session) {
     throw error;
   }
 
-  return data.map(fromRow);
+  return Promise.all(data.map((row) => addSignedPhotoUrl(fromRow(row))));
 }
 
 export async function createPlant(input, session) {
@@ -301,7 +324,7 @@ export async function createPlant(input, session) {
     throw error;
   }
 
-  let plant = fromRow(data);
+  let plant = await addSignedPhotoUrl(fromRow(data));
 
   plant = await attachRemotePhoto({ file: input.photoFile, plant, userId });
 
@@ -348,7 +371,7 @@ export async function updatePlant(plantId, input, session) {
     throw error;
   }
 
-  let plant = fromRow(data);
+  let plant = await addSignedPhotoUrl(fromRow(data));
   plant = await attachRemotePhoto({
     file: input.photoFile,
     plant,
@@ -391,7 +414,7 @@ export async function markPlantWatered(plant, session) {
     throw eventError;
   }
 
-  const updatedPlant = fromRow(data);
+  const updatedPlant = await addSignedPhotoUrl(fromRow(data));
   await ensureReminder({ plant: updatedPlant, userId: session.user.id });
   return updatedPlant;
 }
@@ -428,7 +451,7 @@ export async function markPlantFertilized(plant, session) {
     throw eventError;
   }
 
-  return fromRow(data);
+  return addSignedPhotoUrl(fromRow(data));
 }
 
 export async function deletePlant(plant, session) {
@@ -442,5 +465,15 @@ export async function deletePlant(plant, session) {
 
   if (error) {
     throw error;
+  }
+
+  if (plant.photoStoragePath) {
+    const { error: photoError } = await supabase.storage
+      .from(PHOTO_BUCKET)
+      .remove([plant.photoStoragePath]);
+
+    if (photoError) {
+      console.warn(photoError.message);
+    }
   }
 }

@@ -20,6 +20,7 @@ create table if not exists public.plants (
   last_watered_at timestamptz not null default now(),
   last_fertilized_at timestamptz,
   photo_url text,
+  photo_storage_path text,
   reminder_email_enabled boolean not null default true,
   created_at timestamptz not null default now()
 );
@@ -27,7 +28,8 @@ create table if not exists public.plants (
 alter table public.plants
   add column if not exists fertilizing_enabled boolean not null default false,
   add column if not exists fertilizing_interval_days integer check (fertilizing_interval_days between 7 and 365),
-  add column if not exists last_fertilized_at timestamptz;
+  add column if not exists last_fertilized_at timestamptz,
+  add column if not exists photo_storage_path text;
 
 create table if not exists public.watering_events (
   id uuid primary key default gen_random_uuid(),
@@ -187,17 +189,25 @@ create policy "Users can delete own reminders"
   using (auth.uid() = user_id);
 
 insert into storage.buckets (id, name, public)
-values ('plant-photos', 'plant-photos', true)
+values ('plant-photos', 'plant-photos', false)
 on conflict (id) do nothing;
 
+update storage.buckets
+set public = false
+where id = 'plant-photos';
+
 drop policy if exists "Plant photos are publicly readable" on storage.objects;
+drop policy if exists "Users can read own stored plant photos" on storage.objects;
 drop policy if exists "Users can upload own plant photos" on storage.objects;
 drop policy if exists "Users can update own plant photos" on storage.objects;
 drop policy if exists "Users can delete own plant photos" on storage.objects;
 
-create policy "Plant photos are publicly readable"
+create policy "Users can read own stored plant photos"
   on storage.objects for select
-  using (bucket_id = 'plant-photos');
+  using (
+    bucket_id = 'plant-photos'
+    and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
 create policy "Users can upload own plant photos"
   on storage.objects for insert
@@ -219,6 +229,22 @@ create policy "Users can delete own plant photos"
     bucket_id = 'plant-photos'
     and (storage.foldername(name))[1] = auth.uid()::text
   );
+
+update public.plants
+set
+  photo_storage_path = latest.storage_path,
+  photo_url = null
+from (
+  select distinct on (plant_id)
+    plant_id,
+    storage_path
+  from public.plant_photos
+  where storage_path is not null
+  order by plant_id, created_at desc
+) as latest
+where
+  public.plants.id = latest.plant_id
+  and public.plants.photo_storage_path is null;
 
 create or replace view public.due_email_reminders
 with (security_invoker = true) as
