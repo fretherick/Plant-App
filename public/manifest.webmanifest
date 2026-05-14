@@ -2,10 +2,15 @@
   "name": "Plant Journal",
   "short_name": "Plants",
   "description": "A plant journal for watering, care notes, photos, and reminders.",
+  "id": "/",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#f6f4ed",
   "theme_color": "#f6f4ed",
+  "categories": ["lifestyle", "productivity", "utilities"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon.svg",

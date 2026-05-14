@@ -5,6 +5,7 @@ import {
   Check,
   Cloud,
   BookOpen,
+  Download,
   Droplets,
   House,
   Leaf,
@@ -173,6 +174,13 @@ export default function App() {
   const [authPassword, setAuthPassword] = useState("");
   const [authMode, setAuthMode] = useState("sign-in");
   const [authMessage, setAuthMessage] = useState("");
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [isAppInstalled, setIsAppInstalled] = useState(() => {
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true
+    );
+  });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -273,6 +281,26 @@ export default function App() {
       }
     };
   }, [photoPreview]);
+
+  useEffect(() => {
+    function handleBeforeInstallPrompt(event) {
+      event.preventDefault();
+      setInstallPrompt(event);
+    }
+
+    function handleAppInstalled() {
+      setInstallPrompt(null);
+      setIsAppInstalled(true);
+    }
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
 
   function openForm() {
     setForm({ ...emptyForm, lastWateredAt: todayInputValue() });
@@ -396,6 +424,20 @@ export default function App() {
     await signOut();
     setAuthPassword("");
     setAuthMessage("");
+  }
+
+  async function handleInstallApp() {
+    if (!installPrompt) {
+      return;
+    }
+
+    installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    setInstallPrompt(null);
+
+    if (choice.outcome === "accepted") {
+      setIsAppInstalled(true);
+    }
   }
 
   async function handleSavePlant(event) {
@@ -613,12 +655,15 @@ export default function App() {
           authPassword={authPassword}
           authMode={authMode}
           isCloudMode={isCloudMode}
+          isAppInstalled={isAppInstalled}
           isSupabaseConfigured={isSupabaseConfigured}
+          canInstallApp={Boolean(installPrompt)}
           session={session}
           onAuthEmailChange={setAuthEmail}
           onAuthPasswordChange={setAuthPassword}
           onAuthModeChange={setAuthMode}
           onAuthSubmit={handleAuthSubmit}
+          onInstallApp={handleInstallApp}
           onSignOut={handleSignOut}
         />
       ) : null}
@@ -1304,12 +1349,15 @@ function SettingsView({
   authPassword,
   authMode,
   isCloudMode,
+  isAppInstalled,
   isSupabaseConfigured,
+  canInstallApp,
   session,
   onAuthEmailChange,
   onAuthPasswordChange,
   onAuthModeChange,
   onAuthSubmit,
+  onInstallApp,
   onSignOut
 }) {
   const isSignUp = authMode === "sign-up";
@@ -1336,7 +1384,19 @@ function SettingsView({
             label="Supabase"
             value={isSupabaseConfigured ? "Configured" : "Not configured"}
           />
+          <InfoRow
+            icon={<Download size={18} />}
+            label="App install"
+            value={isAppInstalled ? "Installed" : canInstallApp ? "Available" : "Ready"}
+          />
         </div>
+
+        {canInstallApp && !isAppInstalled ? (
+          <button className="ghost-button full-width" type="button" onClick={onInstallApp}>
+            <Download size={18} />
+            Install app
+          </button>
+        ) : null}
 
         {isSupabaseConfigured ? (
           session ? (
